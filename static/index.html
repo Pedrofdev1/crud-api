@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centro de Comando · Panel Operativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e1621; --panel:#152130; --panel-2:#1b2938; --line:#25384b;
+    --text:#e5edf5; --muted:#7f96ab; --accent:#3fb6f0;
+    --ok:#34d399; --warn:#f2b544; --crit:#f2635f;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'Inter',system-ui,sans-serif; font-size:14px; line-height:1.5;
+    display:flex; min-height:100vh;
+  }
+  code,.mono{font-family:'JetBrains Mono',monospace}
+
+  /* ----- Barra lateral ----- */
+  aside{
+    width:230px; flex-shrink:0; background:var(--panel);
+    border-right:1px solid var(--line); display:flex; flex-direction:column;
+    position:sticky; top:0; height:100vh;
+  }
+  .brand{padding:20px 18px; border-bottom:1px solid var(--line)}
+  .brand h1{font-size:15px; font-weight:700; margin:0; letter-spacing:.2px}
+  .brand p{margin:2px 0 0; font-size:12px; color:var(--muted)}
+  nav{padding:10px; display:flex; flex-direction:column; gap:2px}
+  nav button{
+    all:unset; cursor:pointer; padding:10px 12px; border-radius:8px;
+    color:var(--muted); font-weight:500; display:flex; align-items:center;
+    justify-content:space-between; transition:background .12s,color .12s;
+  }
+  nav button:hover{background:var(--panel-2); color:var(--text)}
+  nav button.active{background:var(--accent); color:#062033; font-weight:600}
+  nav button .n{font-size:12px; opacity:.7}
+  nav button.active .n{opacity:.85}
+  .status{margin-top:auto; padding:14px 18px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); display:flex; align-items:center; gap:8px}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--muted)}
+  .dot.on{background:var(--ok); box-shadow:0 0 0 3px rgba(52,211,153,.15)}
+  .dot.off{background:var(--crit); box-shadow:0 0 0 3px rgba(242,99,95,.15)}
+
+  /* ----- Contenido ----- */
+  main{flex:1; padding:26px 30px; max-width:1100px; width:100%}
+  .head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:4px}
+  .head h2{margin:0; font-size:22px; font-weight:700}
+  .head .count{color:var(--muted); font-size:13px}
+  .sub{color:var(--muted); margin:0 0 22px; font-size:13px}
+
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); margin-bottom:22px}
+  .panel .ph{padding:13px 16px; border-bottom:1px solid var(--line); font-weight:600; font-size:13px}
+
+  /* Formulario */
+  form.grid{padding:16px; display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; align-items:end}
+  .field{display:flex; flex-direction:column; gap:5px; min-width:0}
+  .field label{font-size:12px; color:var(--muted)}
+  .field input,.field select{
+    background:var(--bg); border:1px solid var(--line); color:var(--text);
+    padding:9px 10px; border-radius:7px; font-family:inherit; font-size:13px; width:100%;
+  }
+  .field input:focus,.field select:focus{outline:none; border-color:var(--accent)}
+  .btn{
+    all:unset; cursor:pointer; text-align:center; background:var(--accent); color:#062033;
+    font-weight:600; padding:10px 16px; border-radius:7px; font-size:13px; transition:filter .12s;
+  }
+  .btn:hover{filter:brightness(1.08)}
+  .btn.ghost{background:transparent; border:1px solid var(--line); color:var(--text)}
+  .btn.small{padding:6px 10px; font-size:12px}
+
+  /* Tabla */
+  .tablewrap{overflow-x:auto}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap}
+  th{color:var(--muted); font-weight:500; font-size:12px; background:var(--panel-2)}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--panel-2)}
+  .empty{padding:28px 16px; text-align:center; color:var(--muted)}
+
+  .badge{display:inline-block; padding:3px 9px; border-radius:20px; font-size:12px; font-weight:500; border:1px solid transparent}
+  .badge.ok{color:var(--ok); background:rgba(52,211,153,.1); border-color:rgba(52,211,153,.3)}
+  .badge.warn{color:var(--warn); background:rgba(242,181,68,.1); border-color:rgba(242,181,68,.3)}
+  .badge.crit{color:var(--crit); background:rgba(242,99,95,.1); border-color:rgba(242,99,95,.3)}
+
+  .del{all:unset; cursor:pointer; color:var(--muted); font-size:16px; line-height:1; padding:4px 8px; border-radius:6px}
+  .del:hover{color:var(--crit); background:rgba(242,99,95,.1)}
+
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2); border:1px solid var(--line); padding:12px 18px; border-radius:8px;
+    font-size:13px; opacity:0; pointer-events:none; transition:.2s; max-width:90vw;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  .toast.err{border-color:var(--crit); color:var(--crit)}
+  .toast.ok{border-color:var(--ok); color:var(--ok)}
+
+  /* Consulta LPR */
+  .lpr{padding:16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .lpr input{max-width:220px}
+  .lpr-res{margin:0 16px 16px; font-size:13px}
+
+  @media(max-width:760px){
+    body{flex-direction:column}
+    aside{width:100%; height:auto; position:static; flex-direction:row; flex-wrap:wrap}
+    .brand{width:100%}
+    nav{flex-direction:row; flex-wrap:wrap; flex:1}
+    .status{border-top:none; border-left:1px solid var(--line)}
+    main{padding:20px 16px}
+  }
+</style>
+</head>
+<body>
+  <aside>
+    <div class="brand">
+      <h1>Centro de Comando</h1>
+      <p>Panel operativo de campo</p>
+    </div>
+    <nav id="nav"></nav>
+    <div class="status">
+      <span class="dot" id="dot"></span>
+      <span id="conn">Conectando…</span>
+    </div>
+  </aside>
+
+  <main>
+    <div class="head">
+      <h2 id="title"></h2>
+      <span class="count" id="count"></span>
+    </div>
+    <p class="sub" id="desc"></p>
+    <div id="extra"></div>
+    <div class="panel">
+      <div class="ph">Registrar nuevo</div>
+      <form class="grid" id="form"></form>
+    </div>
+    <div class="panel">
+      <div class="ph">Registros</div>
+      <div class="tablewrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+// ---- Base: misma direccion que sirve esta pagina (no hay problemas de conexion)
+const API = "";
+
+// ---- Catalogos (deben coincidir con el backend) ----
+const CAT = {
+  tipoDisp:["Camara fija","Camara PTZ","Camara LPR","Arco carretero","UPS / Bateria","Antena de microondas","Servidor local"],
+  estadoDisp:["Operativo","En falla","En mantenimiento"],
+  tipoInc:["Vehiculo robado detectado por LPR","Camara fuera de linea","Falla de red","Corte de energia","Alerta de intrusion","Otro"],
+  prioridad:["Baja","Media","Alta","Critica"],
+  estatusTk:["Abierto","En proceso","Resuelto"],
+  rol:["Analista C4/C5","Tecnico de campo","Supervisor","Administrador de sistema"],
+  estatusCuenta:["Activa","Suspendida"],
+  estatusLegal:["Sin novedad","Reporte de robo","Placa clonada"],
+};
+
+// ---- Severidad por valor (para el color de las etiquetas) ----
+function sev(v){
+  const ok=["Operativo","Resuelto","Activa","Sin novedad","Baja"];
+  const crit=["En falla","Suspendida","Reporte de robo","Placa clonada","Critica","Alta","Vehiculo robado detectado por LPR","Alerta de intrusion"];
+  if(ok.includes(v)) return "ok";
+  if(crit.includes(v)) return "crit";
+  return "warn";
+}
+const badge = v => `<span class="badge ${sev(v)}">${v??"—"}</span>`;
+
+// ---- Definicion de los 4 modulos ----
+const MODULES = {
+  dispositivos:{
+    label:"Inventario", title:"Inventario de Hardware", ep:"/dispositivos",
+    desc:"Camaras, arcos, UPS, antenas y servidores instalados en campo.",
+    form:[
+      {k:"tipo",l:"Tipo",type:"select",opt:CAT.tipoDisp,req:true},
+      {k:"municipio",l:"Municipio",type:"text",req:true},
+      {k:"numero_serie",l:"Numero de serie",type:"text",req:true},
+      {k:"ip_asignada",l:"IP asignada",type:"text",req:true},
+      {k:"ubicacion_gps",l:"Ubicacion GPS",type:"text",req:true},
+      {k:"estado",l:"Estado",type:"select",opt:CAT.estadoDisp,req:true},
+      {k:"ultima_revision",l:"Ultima revision",type:"date",req:false},
+    ],
+    cols:[
+      {k:"id",l:"ID",mono:true},{k:"tipo",l:"Tipo"},{k:"municipio",l:"Municipio"},
+      {k:"ip_asignada",l:"IP",mono:true},{k:"numero_serie",l:"Serie",mono:true},
+      {k:"estado",l:"Estado",badge:true},
+    ],
+  },
+  incidencias:{
+    label:"Incidencias", title:"Incidencias / Ticketing", ep:"/incidencias",
+    desc:"Alertas del centro de comando y reportes de soporte tecnico.",
+    form:[
+      {k:"tipo_incidente",l:"Tipo de incidente",type:"select",opt:CAT.tipoInc,req:true},
+      {k:"nivel_prioridad",l:"Prioridad",type:"select",opt:CAT.prioridad,req:true},
+      {k:"municipio",l:"Municipio",type:"text",req:true},
+      {k:"id_dispositivo",l:"ID dispositivo (opcional)",type:"number",req:false},
+      {k:"ingeniero_asignado",l:"Ingeniero (opcional)",type:"text",req:false},
+      {k:"notas_tecnicas",l:"Notas (opcional)",type:"text",req:false},
+    ],
+    cols:[
+      {k:"id",l:"ID",mono:true},{k:"fecha_hora",l:"Fecha",fmt:"dt"},
+      {k:"tipo_incidente",l:"Incidente"},{k:"nivel_prioridad",l:"Prioridad",badge:true},
+      {k:"estatus",l:"Estatus",badge:true},{k:"ingeniero_asignado",l:"Ingeniero"},
+    ],
+  },
+  usuarios:{
+    label:"Usuarios", title:"Usuarios y Roles", ep:"/usuarios",
+    desc:"Personal operativo, roles de acceso y estatus de cuentas.",
+    form:[
+      {k:"numero_empleado",l:"Numero de empleado",type:"text",req:true},
+      {k:"nombre",l:"Nombre",type:"text",req:true},
+      {k:"rol",l:"Rol",type:"select",opt:CAT.rol,req:true},
+      {k:"subcentro_asignado",l:"Subcentro",type:"text",req:true},
+      {k:"estatus_cuenta",l:"Estatus",type:"select",opt:CAT.estatusCuenta,req:true},
+    ],
+    cols:[
+      {k:"id",l:"ID",mono:true},{k:"numero_empleado",l:"No. empleado",mono:true},
+      {k:"nombre",l:"Nombre"},{k:"rol",l:"Rol"},{k:"subcentro_asignado",l:"Subcentro"},
+      {k:"estatus_cuenta",l:"Cuenta",badge:true},
+    ],
+  },
+  vehiculos:{
+    label:"Vehiculos / LPR", title:"Vehiculos / LPR", ep:"/vehiculos",
+    desc:"Catalogo de placas bajo monitoreo y consulta de lecturas LPR.",
+    lpr:true,
+    form:[
+      {k:"placa",l:"Placa",type:"text",req:true},
+      {k:"marca",l:"Marca",type:"text",req:true},
+      {k:"modelo",l:"Modelo",type:"text",req:true},
+      {k:"color",l:"Color",type:"text",req:true},
+      {k:"estatus_legal",l:"Estatus legal",type:"select",opt:CAT.estatusLegal,req:true},
+    ],
+    cols:[
+      {k:"id",l:"ID",mono:true},{k:"placa",l:"Placa",mono:true},{k:"marca",l:"Marca"},
+      {k:"modelo",l:"Modelo"},{k:"color",l:"Color"},
+      {k:"estatus_legal",l:"Estatus",badge:true},{k:"fecha_registro",l:"Registro",mono:true},
+    ],
+  },
+};
+
+let current = "dispositivos";
+const $ = id => document.getElementById(id);
+
+function toast(msg, kind=""){
+  const t=$("toast"); t.textContent=msg; t.className="toast show "+kind;
+  setTimeout(()=>t.className="toast",2600);
+}
+function fmtDt(s){ if(!s) return "—"; return String(s).replace("T"," ").slice(0,16); }
+
+// ---- Construir la navegacion ----
+function buildNav(){
+  const nav=$("nav"); nav.innerHTML="";
+  for(const [key,m] of Object.entries(MODULES)){
+    const b=document.createElement("button");
+    b.innerHTML=`<span>${m.label}</span><span class="n" id="n-${key}"></span>`;
+    b.onclick=()=>select(key);
+    if(key===current) b.classList.add("active");
+    b.dataset.key=key;
+    nav.appendChild(b);
+  }
+}
+
+function select(key){
+  current=key;
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.key===key));
+  render();
+}
+
+// ---- Dibujar el modulo actual ----
+async function render(){
+  const m=MODULES[current];
+  $("title").textContent=m.title;
+  $("desc").textContent=m.desc;
+
+  // Formulario
+  const form=$("form"); form.innerHTML="";
+  m.form.forEach(f=>{
+    const wrap=document.createElement("div"); wrap.className="field";
+    let input;
+    if(f.type==="select"){
+      input=document.createElement("select");
+      f.opt.forEach(o=>{const op=document.createElement("option"); op.value=o; op.textContent=o; input.appendChild(op);});
+    }else{
+      input=document.createElement("input"); input.type=f.type;
+    }
+    input.id="f-"+f.k; if(f.req) input.required=true;
+    const lab=document.createElement("label"); lab.textContent=f.l; lab.htmlFor=input.id;
+    wrap.append(lab,input); form.appendChild(wrap);
+  });
+  const submit=document.createElement("button");
+  submit.className="btn"; submit.textContent="Registrar"; submit.type="button";
+  submit.onclick=crear;
+  const sw=document.createElement("div"); sw.className="field"; sw.appendChild(submit);
+  form.appendChild(sw);
+
+  // Extra (consulta LPR)
+  $("extra").innerHTML = m.lpr ? `
+    <div class="panel">
+      <div class="ph">Consulta LPR — simular lectura de placa</div>
+      <div class="lpr">
+        <input id="lpr-in" placeholder="Ej. ABC-123-A" class="mono">
+        <button class="btn ghost small" onclick="consultarLpr()">Consultar</button>
+      </div>
+      <div class="lpr-res" id="lpr-res"></div>
+    </div>` : "";
+
+  await cargar();
+}
+
+// ---- Leer y pintar la tabla ----
+async function cargar(){
+  const m=MODULES[current];
+  const thead=$("thead"), tbody=$("tbody");
+  thead.innerHTML="<tr>"+m.cols.map(c=>`<th>${c.l}</th>`).join("")+"<th></th></tr>";
+  tbody.innerHTML=`<tr><td class="empty" colspan="${m.cols.length+1}">Cargando…</td></tr>`;
+  try{
+    const res=await fetch(API+m.ep);
+    const data=await res.json();
+    $("count").textContent=data.length+" registro"+(data.length===1?"":"s");
+    $("n-"+current).textContent=data.length;
+    if(!data.length){
+      tbody.innerHTML=`<tr><td class="empty" colspan="${m.cols.length+1}">Sin registros. Usa el formulario de arriba para crear el primero.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML=data.map(row=>{
+      const tds=m.cols.map(c=>{
+        let v=row[c.k];
+        if(c.badge) return `<td>${badge(v)}</td>`;
+        if(c.fmt==="dt") v=fmtDt(v);
+        if(v===null||v===undefined||v==="") v="—";
+        return `<td class="${c.mono?'mono':''}">${v}</td>`;
+      }).join("");
+      return `<tr>${tds}<td><button class="del" title="Eliminar" onclick="borrar(${row.id})">✕</button></td></tr>`;
+    }).join("");
+  }catch(e){
+    tbody.innerHTML=`<tr><td class="empty" colspan="${m.cols.length+1}">No se pudo conectar con la API.</td></tr>`;
+  }
+}
+
+// ---- Crear ----
+async function crear(){
+  const m=MODULES[current];
+  const body={};
+  for(const f of m.form){
+    const el=$("f-"+f.k); let val=el.value;
+    if(val===""){ if(f.req){toast("Falta: "+f.l,"err"); el.focus(); return;} continue; }
+    if(f.type==="number") val=Number(val);
+    body[f.k]=val;
+  }
+  try{
+    const res=await fetch(API+m.ep,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(res.status===201){
+      toast("Registro creado","ok");
+      m.form.forEach(f=>{ if(f.type!=="select") $("f-"+f.k).value=""; });
+      cargar();
+    }else{
+      const err=await res.json();
+      let msg = err.detail;
+      if(Array.isArray(msg)) msg = msg[0].loc.slice(-1)[0]+": "+msg[0].msg;
+      toast("Error "+res.status+": "+msg,"err");
+    }
+  }catch(e){ toast("No se pudo conectar con la API","err"); }
+}
+
+// ---- Eliminar ----
+async function borrar(id){
+  if(!confirm("¿Eliminar el registro #"+id+"?")) return;
+  const m=MODULES[current];
+  try{
+    const res=await fetch(API+m.ep+"/"+id,{method:"DELETE"});
+    if(res.status===204){ toast("Registro eliminado","ok"); cargar(); }
+    else toast("No se pudo eliminar","err");
+  }catch(e){ toast("No se pudo conectar con la API","err"); }
+}
+
+// ---- Consulta LPR ----
+async function consultarLpr(){
+  const placa=$("lpr-in").value.trim();
+  if(!placa){ toast("Escribe una placa","err"); return; }
+  const box=$("lpr-res");
+  try{
+    const res=await fetch(API+"/vehiculos/consulta-lpr/"+encodeURIComponent(placa));
+    const d=await res.json();
+    if(!d.coincidencia){
+      box.innerHTML=`<span class="badge warn">Sin coincidencia</span> La placa <code>${d.placa}</code> no esta en el catalogo de monitoreo.`;
+    }else if(d.alerta){
+      box.innerHTML=`<span class="badge crit">¡ALERTA!</span> <code>${d.placa}</code> — ${badge(d.estatus_legal)}`;
+    }else{
+      box.innerHTML=`<span class="badge ok">Sin novedad</span> <code>${d.placa}</code> registrada y sin alertas.`;
+    }
+  }catch(e){ box.textContent="No se pudo conectar con la API."; }
+}
+
+// ---- Chequeo de conexion ----
+async function ping(){
+  try{
+    const r=await fetch(API+"/salud");
+    if(r.ok){ $("dot").className="dot on"; $("conn").textContent="API en linea"; return; }
+    throw 0;
+  }catch(e){ $("dot").className="dot off"; $("conn").textContent="API desconectada"; }
+}
+
+// ---- Inicio ----
+buildNav(); render(); ping(); setInterval(ping,5000);
+window.borrar=borrar; window.consultarLpr=consultarLpr;
+</script>
+</body>
+</html>

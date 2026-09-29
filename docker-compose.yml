@@ -1,0 +1,11 @@
+# docker-compose permite levantar la app con un solo comando:
+#     docker compose up --build
+#
+# Es comodo porque no tienes que recordar los comandos largos de docker.
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"    # puerto de tu compu : puerto del contenedor
+    container_name: crud-api

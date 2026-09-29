@@ -1,0 +1,25 @@
+# Archivos que Python genera automaticamente
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+ENV/
+
+# Configuracion de editores
+.vscode/
+.idea/
+
+# Variables de entorno con datos sensibles (nunca subir contrasenas/tokens)
+.env
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Bases de datos locales (cuando agreguemos persistencia)
+*.db
+*.sqlite3

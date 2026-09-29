@@ -1,0 +1,13 @@
+# Cosas que NO deben entrar a la imagen de Docker (la hacen mas pesada)
+__pycache__/
+*.pyc
+.venv/
+venv/
+.git/
+.gitignore
+.vscode/
+.idea/
+*.db
+*.sqlite3
+.DS_Store
+README.md
